@@ -59,6 +59,17 @@
     .card-shadow {
       box-shadow: 0 2px 8px rgba(42, 42, 42, 0.08), 0 1px 2px rgba(42, 42, 42, 0.04);
     }
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
   </style>
 </head>
 <body class="min-h-screen">
@@ -100,9 +111,12 @@
       </button>
     </div>
 
-    <!-- Council Grid -->
-    <div v-if="!rateLimited" class="mt-8">
-      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      <!-- Council Grid -->
+      <div v-if="!rateLimited" class="mt-8">
+        <div v-if="isComplete" class="mb-4 text-center text-sm text-muted">
+          All council members have responded
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         <council-card
           v-for="member in allMembers"
           :key="member.id"
@@ -195,25 +209,29 @@
       props: ['disabled', 'isLoading'],
       emits: ['submit'],
       template: `
-        <div class="relative">
+        <div class="bg-surface rounded-lg border border-border card-shadow p-5">
+          <label for="question-input" class="sr-only">Your question</label>
           <textarea
+            id="question-input"
             ref="textareaRef"
             v-model="question"
             @keydown.ctrl.enter="handleSubmit"
             @keydown.meta.enter="handleSubmit"
             :disabled="disabled"
             placeholder="Ask the council anything..."
-            class="w-full px-4 py-4 pr-24 bg-surface rounded-lg border border-border card-shadow text-charcoal placeholder-muted/60 resize-none focus:outline-none focus:ring-2 focus:ring-burgundy/30 focus:border-burgundy transition-all disabled:opacity-60 disabled:cursor-not-allowed font-serif text-base leading-relaxed"
+            class="w-full bg-transparent text-charcoal placeholder-muted/60 resize-none focus:outline-none focus:ring-2 focus:ring-burgundy/30 transition-all disabled:opacity-60 disabled:cursor-not-allowed font-serif text-base leading-relaxed"
             rows="3"
           ></textarea>
-          <button
-            @click="handleSubmit"
-            :disabled="disabled || !question.trim()"
-            class="absolute right-3 bottom-3 px-5 py-2 bg-burgundy text-white rounded-md font-medium text-sm hover:bg-burgundy/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-          >
-            {{ isLoading ? 'Consulting...' : 'Submit' }}
-          </button>
-          <p class="mt-2 text-xs text-muted text-right">Ctrl+Enter to submit</p>
+          <div class="flex items-center justify-between mt-4 pt-4 border-t border-border/50">
+            <span class="text-xs text-muted">Ctrl+Enter to submit</span>
+            <button
+              @click="handleSubmit"
+              :disabled="disabled || !question.trim()"
+              class="px-5 py-2 bg-burgundy text-white rounded-md font-medium text-sm hover:bg-burgundy/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              {{ isLoading ? 'Consulting...' : 'Submit' }}
+            </button>
+          </div>
         </div>
       `,
       setup(props, { emit }) {
