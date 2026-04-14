@@ -1,9 +1,10 @@
 <template>
-  <div class="min-h-screen bg-parchment">
+  <div class="min-h-screen bg-parchment font-serif text-charcoal flex flex-col">
     <AppHeader />
-    <main class="max-w-6xl mx-auto px-4 py-8">
+    <main class="flex-1 w-full max-w-5xl mx-auto px-4 py-8 sm:py-12">
       <NuxtPage />
     </main>
+    <AppFooter />
   </div>
 </template>
 

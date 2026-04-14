@@ -6,7 +6,13 @@ export default defineNuxtConfig({
   
   runtimeConfig: {
     openRouterApiKey: process.env.OPENROUTER_API_KEY || '',
-    limitedFeatures: process.env.LIMITED_FEATURES === 'true',
+    maxTokensPerMember: Number(process.env.MAX_TOKENS_PER_MEMBER || 200),
+    maxTokensJudge: Number(process.env.MAX_TOKENS_JUDGE || 400),
+    rateLimit: Number(process.env.RATE_LIMIT || 5),
+    rateLimitWindowMs: Number(process.env.RATE_LIMIT_WINDOW_MS || 24 * 60 * 60 * 1000),
+    public: {
+      limitedFeatures: process.env.LIMITED_FEATURES === 'true',
+    },
   },
   
   nitro: {

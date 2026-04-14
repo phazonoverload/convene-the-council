@@ -1,4 +1,6 @@
-import { COUNCIL_MEMBERS, JUDGE_CONFIG, SESSION_CONFIG } from '~/config/council'
+import { COUNCIL_MEMBERS, LOCKED_MEMBERS, JUDGE_CONFIG } from '~/config/council'
+
+const ALL_MEMBERS = [...COUNCIL_MEMBERS, ...LOCKED_MEMBERS]
 
 interface CouncilRequest {
   question: string
@@ -14,8 +16,6 @@ interface MemberResponse {
 }
 
 const rateLimitMap = new Map<string, { count: number; resetTime: number }>()
-const RATE_LIMIT = 5
-const RATE_LIMIT_WINDOW = 24 * 60 * 60 * 1000
 
 function getClientIP(event: any): string {
   return event.node?.req?.headers?.['x-forwarded-for']?.split(',')[0]?.trim()
@@ -24,21 +24,21 @@ function getClientIP(event: any): string {
     || 'unknown'
 }
 
-function checkRateLimit(ip: string): { allowed: boolean; remaining: number } {
+function checkRateLimit(ip: string, limit: number, windowMs: number): { allowed: boolean; remaining: number } {
   const now = Date.now()
   const record = rateLimitMap.get(ip)
 
   if (!record || now > record.resetTime) {
-    rateLimitMap.set(ip, { count: 1, resetTime: now + RATE_LIMIT_WINDOW })
-    return { allowed: true, remaining: RATE_LIMIT - 1 }
+    rateLimitMap.set(ip, { count: 1, resetTime: now + windowMs })
+    return { allowed: true, remaining: limit - 1 }
   }
 
-  if (record.count >= RATE_LIMIT) {
+  if (record.count >= limit) {
     return { allowed: false, remaining: 0 }
   }
 
   record.count++
-  return { allowed: true, remaining: RATE_LIMIT - record.count }
+  return { allowed: true, remaining: limit - record.count }
 }
 
 async function callOpenRouter(model: string, systemPrompt: string, userMessage: string, maxTokens: number): Promise<string> {
@@ -62,6 +62,10 @@ async function callOpenRouter(model: string, systemPrompt: string, userMessage: 
         { role: 'user', content: userMessage },
       ],
       max_tokens: maxTokens,
+      // Explicitly disable chain-of-thought reasoning for all models.
+      // Prevents thinking tokens from consuming the token budget and stops
+      // models from returning content: null with reasoning: "..." instead.
+      reasoning: { exclude: true },
     }),
   })
 
@@ -72,20 +76,53 @@ async function callOpenRouter(model: string, systemPrompt: string, userMessage: 
 
   const data = await response.json()
 
-  if (!data.choices?.[0]?.message?.content) {
-    throw new Error('Invalid OpenRouter response structure')
+  // Log full shape in dev so failures are easy to diagnose
+  if (process.env.NODE_ENV !== 'production' && !data.choices?.[0]?.message?.content) {
+    console.warn(`[council] Unexpected response from ${model}:`, JSON.stringify(data).slice(0, 500))
   }
 
-  return data.choices[0].message.content
+  // OpenRouter sometimes returns a 200 with an error payload instead of choices
+  if (data.error) {
+    throw new Error(`OpenRouter error: ${data.error.message || JSON.stringify(data.error)}`)
+  }
+
+  const rawContent   = data.choices?.[0]?.message?.content
+  const rawReasoning = data.choices?.[0]?.message?.reasoning
+
+  // Some models return content as an array of typed parts (multimodal/vision)
+  let content: string
+  if (typeof rawContent === 'string' && rawContent.trim()) {
+    content = rawContent
+  } else if (Array.isArray(rawContent)) {
+    content = rawContent
+      .filter((part: any) => part?.type === 'text')
+      .map((part: any) => part.text ?? '')
+      .join('')
+  } else if (typeof rawReasoning === 'string' && rawReasoning.trim()) {
+    // Thinking/reasoning models (e.g. MiMo, MiniMax M2.7) write to `reasoning`
+    // and only produce `content` once thinking is complete. If max_tokens is too
+    // low they exhaust the budget mid-think. Use the reasoning as a fallback so
+    // the card shows something rather than an error.
+    content = rawReasoning.trim()
+  } else {
+    throw new Error('Unexpected response shape from OpenRouter')
+  }
+
+  if (!content.trim()) {
+    throw new Error('Model returned an empty response')
+  }
+
+  return content
 }
 
-async function getCouncilResponses(question: string, memberIds?: string[]): Promise<MemberResponse[]> {
+async function getCouncilResponses(question: string, maxTokensPerMember: number, memberIds?: string[], limited?: boolean): Promise<MemberResponse[]> {
+  const pool = limited ? COUNCIL_MEMBERS : ALL_MEMBERS
   const members = memberIds
-    ? COUNCIL_MEMBERS.filter(m => memberIds!.includes(m.id))
-    : COUNCIL_MEMBERS
+    ? pool.filter(m => memberIds!.includes(m.id))
+    : pool
 
   const promises = members.map(member =>
-    callOpenRouter(member.model, member.systemPrompt, question, SESSION_CONFIG.maxTokensPerMember)
+    callOpenRouter(member.model, member.systemPrompt, question, maxTokensPerMember)
       .then(response => ({
         memberId: member.id,
         name: member.name,
@@ -103,24 +140,30 @@ async function getCouncilResponses(question: string, memberIds?: string[]): Prom
   return Promise.all(promises)
 }
 
-async function getJudgeVerdict(question: string, memberResponses: MemberResponse[]): Promise<string> {
+async function getJudgeVerdict(question: string, memberResponses: MemberResponse[], maxTokensJudge: number): Promise<string> {
   const responsesText = memberResponses
     .map(m => `${m.name}: ${m.response || `Error: ${m.error}`}`)
     .join('\n\n')
 
   const judgePrompt = `Question: ${question}\n\nCouncil Responses:\n${responsesText}`
 
-  return callOpenRouter(JUDGE_CONFIG.model, JUDGE_CONFIG.systemPrompt, judgePrompt, JUDGE_CONFIG.maxTokens)
+  return callOpenRouter(JUDGE_CONFIG.model, JUDGE_CONFIG.systemPrompt, judgePrompt, maxTokensJudge)
 }
 
 export default defineEventHandler(async (event) => {
+  const config = useRuntimeConfig()
+  const rateLimit = config.rateLimit as number
+  const rateLimitWindowMs = config.rateLimitWindowMs as number
+  const maxTokensPerMember = config.maxTokensPerMember as number
+  const maxTokensJudge = config.maxTokensJudge as number
+
   const ip = getClientIP(event)
-  const rateLimitResult = checkRateLimit(ip)
+  const rateLimitResult = checkRateLimit(ip, rateLimit, rateLimitWindowMs)
 
   if (!rateLimitResult.allowed) {
     throw createError({
       statusCode: 429,
-      message: `Rate limit exceeded. Maximum ${RATE_LIMIT} requests per day.`,
+      message: `Rate limit exceeded. Maximum ${rateLimit} requests per window.`,
     })
   }
 
@@ -141,7 +184,7 @@ export default defineEventHandler(async (event) => {
       if (!previousResponses?.length) {
         throw createError({ statusCode: 400, message: 'previousResponses required for judgeOnly' })
       }
-      const verdict = await getJudgeVerdict(question, previousResponses)
+      const verdict = await getJudgeVerdict(question, previousResponses, maxTokensJudge)
       return { verdict, remaining: rateLimitResult.remaining }
     } catch (err: any) {
       if (err.statusCode) throw err
@@ -150,8 +193,9 @@ export default defineEventHandler(async (event) => {
   }
 
   try {
-    const memberResponses = await getCouncilResponses(question, body.memberIds)
-    const verdict = await getJudgeVerdict(question, memberResponses)
+    const limited = config.public.limitedFeatures as boolean
+    const memberResponses = await getCouncilResponses(question, maxTokensPerMember, body.memberIds, limited)
+    const verdict = await getJudgeVerdict(question, memberResponses, maxTokensJudge)
 
     return {
       question,

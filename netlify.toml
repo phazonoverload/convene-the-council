@@ -1,11 +1,11 @@
 [build]
   command = "npm run build"
-  publish = ".output/public"
+  publish = "dist"
 
 [build.environment]
   NODE_VERSION = "20"
 
-[[redirects]]
-  from = "/api/*"
-  to = "/.netlify/functions/:splat"
-  status = 200
+# Nuxt's Nitro "netlify" preset generates the Netlify functions and
+# the static output automatically — no redirects are needed here.
+# The preset wires /api/* to the server function and sets up the
+# SPA fallback for all other routes.
