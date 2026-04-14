@@ -85,58 +85,87 @@ function checkRateLimit(ip) {
 async function callOpenRouter(model, systemPrompt, userMessage, maxTokens) {
   const apiKey = process.env.OPENROUTER_API_KEY;
   
+  console.log(`[DEBUG] Calling model: ${model}`);
+  
   if (!apiKey) {
+    console.log(`[DEBUG] No API key configured`);
     throw new Error("OPENROUTER_API_KEY is not configured");
   }
   
-  const response = await fetch(OPENROUTER_API_URL, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "Authorization": `Bearer ${apiKey}`
-    },
-    body: JSON.stringify({
-      model: model,
-      messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: userMessage }
-      ],
-      max_tokens: maxTokens
-    })
-  });
-  
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(`OpenRouter API error: ${response.status} - ${errorText}`);
+  try {
+    const response = await fetch(OPENROUTER_API_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${apiKey}`
+      },
+      body: JSON.stringify({
+        model: model,
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userMessage }
+        ],
+        max_tokens: maxTokens
+      })
+    });
+    
+    console.log(`[DEBUG] ${model} response status: ${response.status}`);
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.log(`[DEBUG] ${model} error response: ${errorText}`);
+      throw new Error(`OpenRouter API error: ${response.status} - ${errorText}`);
+    }
+    
+    const data = await response.json();
+    console.log(`[DEBUG] ${model} success, tokens used: ${data.usage?.total_tokens || 'unknown'}`);
+    
+    if (!data.choices || !data.choices[0] || !data.choices[0].message) {
+      console.log(`[DEBUG] ${model} invalid response structure:`, JSON.stringify(data));
+      throw new Error("Invalid OpenRouter response structure");
+    }
+    
+    return data.choices[0].message.content;
+  } catch (err) {
+    console.log(`[DEBUG] ${model} threw error: ${err.message}`);
+    throw err;
   }
-  
-  const data = await response.json();
-  
-  if (!data.choices || !data.choices[0] || !data.choices[0].message) {
-    throw new Error("Invalid OpenRouter response structure");
-  }
-  
-  return data.choices[0].message.content;
 }
 
 async function getCouncilMemberResponses(question) {
-  const promises = COUNCIL_MEMBERS.map(member => 
-    callOpenRouter(member.model, member.systemPrompt, question, SESSION_CONFIG.maxTokensPerMember)
-      .then(response => ({
-        memberId: member.id,
-        name: member.name,
-        response: response,
-        error: null
-      }))
-      .catch(error => ({
-        memberId: member.id,
-        name: member.name,
-        response: null,
-        error: error.message
-      }))
-  );
+  console.log(`[DEBUG] Starting council member requests for question: "${question}"`);
   
-  return Promise.all(promises);
+  const promises = COUNCIL_MEMBERS.map(member => {
+    console.log(`[DEBUG] Requesting from ${member.id} (${member.model})`);
+    return callOpenRouter(member.model, member.systemPrompt, question, SESSION_CONFIG.maxTokensPerMember)
+      .then(response => {
+        console.log(`[DEBUG] ${member.id} SUCCESS`);
+        return {
+          memberId: member.id,
+          name: member.name,
+          response: response,
+          error: null
+        };
+      })
+      .catch(error => {
+        console.log(`[DEBUG] ${member.id} FAILED: ${error.message}`);
+        return {
+          memberId: member.id,
+          name: member.name,
+          response: null,
+          error: error.message
+        };
+      });
+  });
+  
+  const results = await Promise.all(promises);
+  
+  console.log(`[DEBUG] All requests complete. Results:`);
+  results.forEach(r => {
+    console.log(`  ${r.memberId}: ${r.error ? 'ERROR: ' + r.error : 'OK (' + r.response?.length + ' chars)'}`);
+  });
+  
+  return results;
 }
 
 async function getJudgeVerdict(question, memberResponses) {
@@ -224,8 +253,11 @@ exports.handler = async function(event) {
   }
   
   try {
+    console.log(`[DEBUG] Processing question: "${question.trim()}"`);
     const memberResponses = await getCouncilMemberResponses(question.trim());
+    console.log(`[DEBUG] Getting judge verdict...`);
     const verdict = await getJudgeVerdict(question.trim(), memberResponses);
+    console.log(`[DEBUG] Judge verdict received (${verdict?.length || 0} chars)`);
     const response = buildResponse(question.trim(), memberResponses, verdict);
     
     return {
