@@ -1,5 +1,17 @@
+# Nuxt build
+.nuxt
+.output
+.nitro
+.cache
+
+# Node
+node_modules
+
 # Local Netlify folder
 .netlify
+
+# OS
+.DS_Store
 
 # Docs (maintained externally)
 /docs

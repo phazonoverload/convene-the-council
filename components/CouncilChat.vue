@@ -5,9 +5,9 @@
         @click="$emit('back')"
         class="text-muted hover:text-charcoal transition-colors"
       >
-        ← Back
+        <ArrowLeftIcon class="w-5 h-5" />
       </button>
-      <span class="text-2xl">{{ member.avatar }}</span>
+      <component :is="avatarIcon" class="w-7 h-7 text-burgundy" />
       <div>
         <h2 class="font-display font-semibold text-charcoal">{{ member.name }}</h2>
         <p class="text-sm text-muted">{{ member.title }}</p>
@@ -58,6 +58,20 @@
 
 <script setup lang="ts">
 import type { CouncilMember } from '~/config/council'
+import {
+  ArrowLeftIcon,
+  WrenchScrewdriverIcon,
+  QuestionMarkCircleIcon,
+  SunIcon,
+  ScaleIcon,
+  ExclamationTriangleIcon,
+  AcademicCapIcon,
+  LightBulbIcon,
+  HeartIcon,
+  BookOpenIcon,
+  BeakerIcon,
+  ShieldCheckIcon,
+} from '@heroicons/vue/24/outline'
 
 const props = defineProps<{
   member: CouncilMember
@@ -70,6 +84,22 @@ defineEmits<{
 const userInput = ref('')
 const chatMessages = ref<{ role: string; content: string }[]>([])
 const isLoading = ref(false)
+
+const iconMap: Record<string, any> = {
+  'wrench-screwdriver': WrenchScrewdriverIcon,
+  'question-mark-circle': QuestionMarkCircleIcon,
+  'sun': SunIcon,
+  'scale': ScaleIcon,
+  'exclamation-triangle': ExclamationTriangleIcon,
+  'academic-cap': AcademicCapIcon,
+  'light-bulb': LightBulbIcon,
+  'heart': HeartIcon,
+  'book-open': BookOpenIcon,
+  'beaker': BeakerIcon,
+  'shield-check': ShieldCheckIcon,
+}
+
+const avatarIcon = computed(() => iconMap[props.member.avatar] || QuestionMarkCircleIcon)
 
 const sendMessage = async () => {
   if (!userInput.trim() || isLoading.value) return
