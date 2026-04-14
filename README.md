@@ -1,12 +1,11 @@
 # Convene the Council
 
-A small web app for putting a question to a panel of AI advisors with different sensibilities and getting back a synthesized recommendation. Five advisors respond in parallel, a judge model synthesizes their answers.
+A small web app for putting a question to a panel of AI advisors with different sensibilities and getting back a synthesized recommendation. Multiple advisors respond in parallel, a judge model synthesizes their answers.
 
-A tool by [Kevin Lewis](https://lws.io).
 
 ## Try it
 
-Hosted version: [convene-the-council.netlify.app](https://convene-the-council.netlify.app). Capped to a few questions per day per visitor and only runs the five free seats.
+Hosted version: [convenethecouncil.com](https://convenethecouncil.com). Capped to a few questions per day per visitor and only runs the five free seats.
 
 ## Deploy your own
 
