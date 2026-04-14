@@ -1,7 +1,8 @@
 <template>
   <div>
     <!-- Question Input -->
-    <div v-if="!hasResponded" class="bg-surface rounded-lg border border-border card-shadow overflow-hidden">
+    <div v-if="!hasResponded" class="bg-surface rounded-lg border-2 border-charcoal/10 shadow-lg overflow-hidden">
+      <div class="h-1 bg-gradient-to-r from-burgundy/60 via-burgundy to-burgundy/60"></div>
       <textarea
         ref="textareaRef"
         v-model="questionDraft"
@@ -9,8 +10,8 @@
         @keydown.meta.enter="submitQuestion"
         :disabled="isLoading"
         placeholder="Ask the council anything..."
-        class="w-full px-4 pt-4 pb-2 bg-transparent text-charcoal placeholder-muted/60 resize-none outline-none transition-all disabled:opacity-60 disabled:cursor-not-allowed font-serif text-base leading-relaxed rounded"
-        rows="3"
+        class="w-full px-5 pt-5 pb-3 bg-transparent text-charcoal placeholder-muted/50 resize-none outline-none transition-all disabled:opacity-60 disabled:cursor-not-allowed font-serif text-lg leading-relaxed"
+        rows="4"
       ></textarea>
       <div class="flex items-center justify-between px-4 py-3 border-t border-border/60 bg-parchment/30">
         <p class="text-xs text-muted">Ctrl+Enter to submit</p>
@@ -52,7 +53,7 @@
     <div v-if="!rateLimited" class="mt-8 slide-down">
       <!-- Self-hosted: all members in one unified grid -->
       <template v-if="!limited">
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div class="grid council-grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
           <CouncilMemberCard
             v-for="member in visibleCouncilMembers"
             :key="member.id"
@@ -76,7 +77,7 @@
 
       <!-- Limited: primary members + deploy CTA, then additional members with heading -->
       <template v-else>
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div class="grid council-grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
           <CouncilMemberCard
             v-for="member in visibleCouncilMembers"
             :key="member.id"
@@ -89,9 +90,9 @@
 
           <NuxtLink
             to="/deploy"
-            class="rounded-lg p-5 border border-dashed border-border bg-surface/50 hover:bg-surface hover:card-shadow transition-all flex flex-col justify-center items-center text-center min-h-[200px]"
+            class="rounded-xl p-6 border-2 border-dashed border-charcoal/20 bg-surface/80 hover:bg-surface hover:border-burgundy/50 hover:shadow-xl scale-in transition-all flex flex-col justify-center items-center text-center min-h-[200px]"
           >
-            <svg class="w-8 h-8 text-burgundy mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg class="w-10 h-10 text-burgundy mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M13 10V3L4 14h7v7l9-11h-7z"/>
             </svg>
             <h3 class="font-display text-lg font-semibold text-charcoal mb-2">Deploy your own</h3>

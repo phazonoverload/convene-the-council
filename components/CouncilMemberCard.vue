@@ -1,28 +1,29 @@
 <template>
 <div
   :class="[
-    'relative rounded-lg pt-5 px-5 pb-3 bg-surface card-shadow border border-border transition-all duration-200',
-    state === 'error' ? 'border-error ring-1 ring-error/30' : '',
-    state === 'responded' ? 'fade-in' : '',
-    state === 'locked' ? 'opacity-60' : '',
-    state !== 'locked' && state !== 'error' ? 'hover:border-burgundy/40 hover:shadow-md' : '',
+    'relative rounded-xl pt-5 px-5 pb-3 bg-surface card-shadow border-2 border-charcoal/5 transition-all duration-300 scale-in',
+    state === 'error' ? 'border-error ring-2 ring-error/20' : '',
+    state === 'responded' ? 'border-burgundy/30' : '',
+    state === 'locked' ? 'opacity-50' : '',
+    state !== 'locked' && state !== 'error' ? 'hover:border-burgundy/50 hover:shadow-xl hover:-translate-y-1' : '',
   ]"
 >
     <div class="flex items-start gap-3 mb-3">
       <div
         :class="[
-          'flex-shrink-0 w-10 h-10 rounded-lg flex items-center justify-center',
+          'flex-shrink-0 w-12 h-12 rounded-xl flex items-center justify-center shadow-sm',
           iconMeta.bg,
         ]"
       >
-        <component :is="iconMeta.component" :class="['w-5 h-5', iconMeta.color]" />
+        <component :is="iconMeta.component" :class="['w-6 h-6', iconMeta.color]" />
       </div>
-      <div class="flex-1 min-w-0">
+      <div class="flex-1 min-w-0 pt-1">
         <div class="flex items-center gap-2">
           <h3 class="font-display text-lg font-semibold text-charcoal leading-tight">{{ member.name }}</h3>
           <LockClosedIcon v-if="state === 'locked'" class="w-4 h-4 text-muted flex-shrink-0" />
+          <CheckCircleIcon v-else-if="state === 'responded'" class="w-4 h-4 text-burgundy/70 flex-shrink-0" />
         </div>
-        <p class="text-xs text-muted mt-1 leading-snug">{{ member.description }}</p>
+        <p class="text-xs text-muted/80 mt-0.5 leading-snug">{{ member.description }}</p>
       </div>
     </div>
 
@@ -85,6 +86,7 @@ import {
   LockClosedIcon,
   UserCircleIcon,
   CpuChipIcon,
+  CheckCircleIcon,
 } from '@heroicons/vue/24/outline'
 import type { CouncilMember } from '~/config/council'
 

@@ -13,14 +13,22 @@ import { NuxtModule, ModuleDependencyMeta } from '@nuxt/schema'
 
    openRouterApiKey: string,
 
-   limitedFeatures: boolean,
+   maxTokensPerMember: number,
+
+   maxTokensJudge: number,
+
+   rateLimit: number,
+
+   rateLimitWindowMs: number,
 
    nitro: {
       envPrefix: string,
    },
   }
   interface SharedPublicRuntimeConfig {
+   limitedFeatures: boolean,
 
+   disabledMembers: Array<any>,
   }
 declare module '@nuxt/schema' {
   interface ModuleDependencies {
