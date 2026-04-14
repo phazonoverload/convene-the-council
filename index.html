@@ -173,28 +173,28 @@
         id: 'optimist',
         name: 'The Optimist',
         description: 'Finds the best-case path and argues for it.',
-        model: 'mistralai/mistral-small-3.1',
+        model: 'mistralai/mistral-7b-instruct',
         tier: 'free',
         locked: false,
-        systemPrompt: 'You are an optimistic advisor on a personal council. Your role is to find the best-case path and make the strongest case for it. When given a question or decision, assume the best outcome is possible and build the most compelling argument for it. Identify: What conditions would need to hold? Who could become allies? What would success look like and how do we get there? Find the strongest reasons to proceed, not the objections. Make the case vividly and forcefully. Do not soften your optimism with caveats.'
+        systemPrompt: 'You are an optimistic advisor on a personal council...'
       },
       {
         id: 'devil',
-        name: "The Devil's Advocate",
+        name: 'The Devil\'s Advocate',
         description: 'Takes the least popular position and defends it properly.',
-        model: 'google/gemini-2.0-flash',
+        model: 'google/gemini-pro',
         tier: 'free',
         locked: false,
-        systemPrompt: "You are a devil's advocate on a personal council. Your role is to argue the contrarian position with full commitment. When given a question or decision, identify the least popular but defensible position and become its strongest defender. You are not playing devil's advocate to be difficult—you genuinely commit to the view. Build the strongest possible case for the minority position. Challenge groupthink and received wisdom. Make others earn their confidence by addressing serious objections. Argue with conviction."
+        systemPrompt: 'You are a devil\'s advocate on a personal council...'
       },
       {
         id: 'risk',
         name: 'The Risk Manager',
         description: 'Maps what could go wrong, probability and severity only.',
-        model: 'allenai/olmo-3.1-32b-think',
+        model: 'qwen/qwen-2.5-32b-instruct',
         tier: 'free',
         locked: false,
-        systemPrompt: 'You are a risk manager on a personal council. Your role is to map what could go wrong in terms of probability and severity only. When given a question or decision, systematically identify: What are the concrete things that could happen? How likely is each (high/medium/low)? How bad would each be if it happened (high/medium/low)? What would the consequences look like in specific terms? Do not suggest mitigations. Do not offer recommendations. Do not assess whether risks are acceptable. Your job is only to identify and characterize risks with clinical precision.'
+        systemPrompt: 'You are a risk manager on a personal council...'
       }
     ];
 
