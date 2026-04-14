@@ -9,6 +9,10 @@ export default defineNuxtConfig({
     limitedFeatures: process.env.LIMITED_FEATURES === 'true',
   },
   
+  nitro: {
+    preset: 'netlify',
+  },
+  
   app: {
     head: {
       title: 'Convene the Council',
