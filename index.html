@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Personal Council</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400;1,500&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            parchment: '#f5f0e3',
+            cream: '#f5f0e3',
+            surface: '#ffffff',
+            charcoal: '#2a2a2a',
+            muted: '#6b6b6b',
+            burgundy: '#7a2c2c',
+            border: '#d4c9b5',
+            error: '#b33a3a',
+            locked: '#e8e4dc',
+          },
+          fontFamily: {
+            serif: ['Lora', 'Georgia', 'serif'],
+            display: ['Playfair Display', 'Georgia', 'serif'],
+          },
+        },
+      },
+    }
+  </script>
+  <style>
+    body {
+      background-color: #f5f0e3;
+      font-family: 'Lora', Georgia, serif;
+    }
+    .font-display {
+      font-family: 'Playfair Display', Georgia, serif;
+    }
+    .shimmer {
+      background: linear-gradient(90deg, #e8e4dc 25%, #f5f0e3 50%, #e8e4dc 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.5s infinite;
+    }
+    @keyframes shimmer {
+      0% { background-position: 200% 0; }
+      100% { background-position: -200% 0; }
+    }
+    .fade-in {
+      animation: fadeIn 0.6s ease-out;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .card-shadow {
+      box-shadow: 0 2px 8px rgba(42, 42, 42, 0.08), 0 1px 2px rgba(42, 42, 42, 0.04);
+    }
+  </style>
+</head>
+<body class="min-h-screen">
+  <div id="app" class="max-w-5xl mx-auto px-4 py-8 sm:py-12">
+    <!-- Header -->
+    <header class="flex items-center justify-between mb-10 pb-6 border-b border-border">
+      <div class="flex items-center gap-3">
+        <svg class="w-8 h-8 text-burgundy" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+        </svg>
+        <h1 class="font-display text-2xl sm:text-3xl font-semibold text-charcoal tracking-tight">Personal Council</h1>
+      </div>
+      <button @click="showHelp = !showHelp" class="text-muted hover:text-burgundy transition-colors p-2" title="Help">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+        </svg>
+      </button>
+    </header>
+
+    <!-- Help Panel -->
+    <div v-if="showHelp" class="mb-8 p-4 bg-surface rounded-lg card-shadow border border-border fade-in">
+      <h3 class="font-display text-lg font-medium text-charcoal mb-2">How It Works</h3>
+      <p class="text-muted text-sm leading-relaxed">Present any question, decision, or dilemma to your personal council. Each member brings a unique perspective and reasoning style. The Judge synthesizes their responses into a final verdict. Responses appear as they resolve—come back and compare viewpoints.</p>
+    </div>
+
+    <!-- Question Input -->
+    <question-input
+      :disabled="isLoading"
+      :is-loading="isLoading"
+      @submit="submitQuestion"
+    ></question-input>
+
+    <!-- Rate Limit Message -->
+    <div v-if="rateLimited" class="mt-6 p-6 bg-red-50 border border-error rounded-lg text-center">
+      <p class="text-error font-medium mb-3">Rate limit reached. The council needs a moment to rest.</p>
+      <p class="text-muted text-sm">Deploy your own instance to get higher limits and unlock premium council members.</p>
+      <button class="mt-4 px-6 py-2 bg-burgundy text-white rounded-lg hover:bg-burgundy/90 transition-colors">
+        Deploy to Netlify
+      </button>
+    </div>
+
+    <!-- Council Grid -->
+    <div v-if="!rateLimited" class="mt-8">
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <council-card
+          v-for="member in allMembers"
+          :key="member.id"
+          :member="member"
+          :state="getMemberState(member.id)"
+          :response="getMemberResponse(member.id)"
+          :error="getMemberError(member.id)"
+          @retry="retryMember(member.id)"
+        ></council-card>
+      </div>
+
+      <!-- Judge Verdict -->
+      <judge-verdict
+        v-if="showVerdict || verdict"
+        :verdict="verdict"
+        :is-loading="isLoading && !verdict"
+        :error="verdictError"
+        @retry="retryJudge"
+      ></judge-verdict>
+    </div>
+
+    <!-- Reset Link -->
+    <div v-if="hasResponded && !isLoading" class="mt-8 text-center">
+      <button @click="reset" class="text-burgundy hover:text-burgundy/80 underline underline-offset-4 text-sm">
+        Ask another question
+      </button>
+    </div>
+  </div>
+
+  <script>
+    const { createApp, ref, computed, nextTick } = Vue;
+
+    // Council Members Data
+    const COUNCIL_MEMBERS = [
+      {
+        id: 'pragmatist',
+        name: 'The Pragmatist',
+        description: "Cuts to what's actually executable. Allergic to theory.",
+        model: 'deepseek/deepseek-v3.2',
+        tier: 'free',
+        locked: false,
+        systemPrompt: 'You are a pragmatic advisor on a personal council. Your role is singular: assess what is actually executable given real-world constraints. When given a question or decision, cut through abstraction and ideology. Identify exactly what can be done this week, who needs to approve it, what could block it, and what success actually looks like in concrete terms. Be direct. Do not soften your assessment with qualifications. State your position clearly. Challenge any suggestion that ignores operational reality.'
+      },
+      {
+        id: 'skeptic',
+        name: 'The Skeptic',
+        description: 'Assumes there\'s a fatal flaw and looks for it.',
+        model: 'mistralai/mistral-large',
+        tier: 'free',
+        locked: false,
+        systemPrompt: 'You are a sceptical advisor on a personal council. Your role is to find the fatal flaw. When given a question or decision, assume something is wrong, incomplete, or about to go badly. Systematically examine: What are the failure modes? What information is missing? What could opponents or circumstances use against this? What assumptions are being made that might not hold? Do not offer an alternative view. Do not suggest improvements. Find the problem. Be direct about what you find. Do not hedge or qualify.'
+      },
+      {
+        id: 'optimist',
+        name: 'The Optimist',
+        description: 'Finds the best-case path and argues for it.',
+        model: 'mistralai/mistral-small-3.1',
+        tier: 'free',
+        locked: false,
+        systemPrompt: 'You are an optimistic advisor on a personal council. Your role is to find the best-case path and make the strongest case for it. When given a question or decision, assume the best outcome is possible and build the most compelling argument for it. Identify: What conditions would need to hold? Who could become allies? What would success look like and how do we get there? Find the strongest reasons to proceed, not the objections. Make the case vividly and forcefully. Do not soften your optimism with caveats.'
+      },
+      {
+        id: 'devil',
+        name: "The Devil's Advocate",
+        description: 'Takes the least popular position and defends it properly.',
+        model: 'google/gemini-2.0-flash',
+        tier: 'free',
+        locked: false,
+        systemPrompt: "You are a devil's advocate on a personal council. Your role is to argue the contrarian position with full commitment. When given a question or decision, identify the least popular but defensible position and become its strongest defender. You are not playing devil's advocate to be difficult—you genuinely commit to the view. Build the strongest possible case for the minority position. Challenge groupthink and received wisdom. Make others earn their confidence by addressing serious objections. Argue with conviction."
+      },
+      {
+        id: 'risk',
+        name: 'The Risk Manager',
+        description: 'Maps what could go wrong, probability and severity only.',
+        model: 'allenai/olmo-3.1-32b-think',
+        tier: 'free',
+        locked: false,
+        systemPrompt: 'You are a risk manager on a personal council. Your role is to map what could go wrong in terms of probability and severity only. When given a question or decision, systematically identify: What are the concrete things that could happen? How likely is each (high/medium/low)? How bad would each be if it happened (high/medium/low)? What would the consequences look like in specific terms? Do not suggest mitigations. Do not offer recommendations. Do not assess whether risks are acceptable. Your job is only to identify and characterize risks with clinical precision.'
+      }
+    ];
+
+    const LOCKED_MEMBERS = [
+      { id: 'mentor', name: 'The Mentor', description: 'Premium model cost', model: 'openai/gpt-5.4', tier: 'premium', locked: true },
+      { id: 'contrarian', name: 'The Contrarian Genius', description: 'Large context, premium cost', model: 'google/gemini-3.1-pro-preview', tier: 'premium', locked: true },
+      { id: 'therapist', name: 'The Therapist', description: 'Different system prompt, polarizing persona', model: 'anthropic/claude-sonnet-4-6', tier: 'premium', locked: true }
+    ];
+
+    // QuestionInput Component
+    const QuestionInput = {
+      props: ['disabled', 'isLoading'],
+      emits: ['submit'],
+      template: `
+        <div class="relative">
+          <textarea
+            ref="textareaRef"
+            v-model="question"
+            @keydown.ctrl.enter="handleSubmit"
+            @keydown.meta.enter="handleSubmit"
+            :disabled="disabled"
+            placeholder="Ask the council anything..."
+            class="w-full px-4 py-4 pr-24 bg-surface rounded-lg border border-border card-shadow text-charcoal placeholder-muted/60 resize-none focus:outline-none focus:ring-2 focus:ring-burgundy/30 focus:border-burgundy transition-all disabled:opacity-60 disabled:cursor-not-allowed font-serif text-base leading-relaxed"
+            rows="3"
+          ></textarea>
+          <button
+            @click="handleSubmit"
+            :disabled="disabled || !question.trim()"
+            class="absolute right-3 bottom-3 px-5 py-2 bg-burgundy text-white rounded-md font-medium text-sm hover:bg-burgundy/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          >
+            {{ isLoading ? 'Consulting...' : 'Submit' }}
+          </button>
+          <p class="mt-2 text-xs text-muted text-right">Ctrl+Enter to submit</p>
+        </div>
+      `,
+      setup(props, { emit }) {
+        const question = ref('');
+        const textareaRef = ref(null);
+
+        const handleSubmit = () => {
+          if (question.value.trim() && !props.disabled) {
+            emit('submit', question.value.trim());
+          }
+        };
+
+        // Auto-focus on mount
+        nextTick(() => {
+          if (textareaRef.value) {
+            textareaRef.value.focus();
+          }
+        });
+
+        return { question, textareaRef, handleSubmit };
+      }
+    };
+
+    // CouncilCard Component
+    const CouncilCard = {
+      props: ['member', 'state', 'response', 'error'],
+      emits: ['retry'],
+      template: `
+        <div
+          :class="[
+            'relative rounded-lg p-5 transition-all',
+            state === 'locked' ? 'bg-locked border border-border/50' : 'bg-surface card-shadow border border-border',
+            state === 'error' ? 'border-error ring-1 ring-error/30' : ''
+          ]"
+        >
+          <!-- Locked Overlay -->
+          <div v-if="state === 'locked'" class="absolute inset-0 bg-locked/80 rounded-lg flex flex-col items-center justify-center z-10">
+            <svg class="w-8 h-8 text-muted mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+            </svg>
+            <p class="text-sm text-muted font-medium">Deploy to unlock</p>
+          </div>
+
+          <!-- Member Header -->
+          <div class="flex items-start justify-between mb-3">
+            <div>
+              <h3 class="font-display text-lg font-semibold text-charcoal">{{ member.name }}</h3>
+              <p class="text-xs text-muted mt-0.5">{{ member.model }}</p>
+            </div>
+            <span v-if="member.tier === 'premium'" class="text-xs px-2 py-0.5 bg-burgundy/10 text-burgundy rounded">Premium</span>
+          </div>
+
+          <p class="text-sm text-muted mb-4 leading-relaxed">{{ member.description }}</p>
+
+          <!-- States -->
+          <div v-if="state === 'idle'" class="flex items-center justify-center h-24 border-t border-border/50 pt-4">
+            <p class="text-sm text-muted/60 italic">Awaiting your question...</p>
+          </div>
+
+          <div v-else-if="state === 'thinking'" class="h-32 border-t border-border/50 pt-4">
+            <div class="shimmer h-full rounded-md"></div>
+          </div>
+
+          <div v-else-if="state === 'responded'" class="border-t border-border/50 pt-4">
+            <p class="text-sm text-charcoal leading-relaxed whitespace-pre-wrap">{{ response }}</p>
+          </div>
+
+          <div v-else-if="state === 'error'" class="border-t border-error/30 pt-4">
+            <p class="text-sm text-error mb-3">{{ error }}</p>
+            <button
+              @click="$emit('retry')"
+              class="text-xs px-3 py-1.5 border border-error text-error rounded hover:bg-error/10 transition-colors"
+            >
+              Retry
+            </button>
+          </div>
+        </div>
+      `
+    };
+
+    // JudgeVerdict Component
+    const JudgeVerdict = {
+      props: ['verdict', 'isLoading', 'error'],
+      emits: ['retry'],
+      template: `
+        <div class="mt-8">
+          <div class="flex items-center gap-4 mb-4">
+            <div class="flex-1 h-px bg-border"></div>
+            <span class="font-display text-sm font-medium text-muted uppercase tracking-wider">Judge's Verdict</span>
+            <div class="flex-1 h-px bg-border"></div>
+          </div>
+
+          <div
+            :class="[
+              'rounded-lg p-6 bg-surface card-shadow border border-border',
+              isLoading ? '' : 'fade-in'
+            ]"
+          >
+            <div v-if="isLoading" class="h-32">
+              <div class="shimmer h-full rounded-md"></div>
+            </div>
+
+            <div v-else-if="error" class="text-center">
+              <p class="text-error mb-3">{{ error }}</p>
+              <button
+                @click="$emit('retry')"
+                class="text-sm px-4 py-2 border border-error text-error rounded hover:bg-error/10 transition-colors"
+              >
+                Retry Verdict
+              </button>
+            </div>
+
+            <div v-else>
+              <p class="text-charcoal leading-relaxed whitespace-pre-wrap">{{ verdict }}</p>
+            </div>
+          </div>
+        </div>
+      `
+    };
+
+    // Main App
+    const app = createApp({
+      components: {
+        QuestionInput,
+        CouncilCard,
+        JudgeVerdict
+      },
+      setup() {
+        const showHelp = ref(false);
+        const isLoading = ref(false);
+        const rateLimited = ref(false);
+        const question = ref('');
+        const responses = ref({});
+        const errors = ref({});
+        const verdict = ref('');
+        const verdictError = ref('');
+        const showVerdict = ref(false);
+
+        const allMembers = computed(() => [...COUNCIL_MEMBERS, ...LOCKED_MEMBERS]);
+
+        const hasResponded = computed(() => {
+          return Object.keys(responses.value).length > 0 || verdict.value;
+        });
+
+        const isComplete = computed(() => {
+          const activeResponded = COUNCIL_MEMBERS.filter(m => !m.locked).every(m => responses.value[m.id] || errors.value[m.id]);
+          return activeResponded && verdict.value;
+        });
+
+        const getMemberState = (memberId) => {
+          const member = allMembers.value.find(m => m.id === memberId);
+          if (member?.locked) return 'locked';
+          if (isLoading.value && !responses.value[memberId] && !errors.value[memberId]) return 'thinking';
+          if (errors.value[memberId]) return 'error';
+          if (responses.value[memberId]) return 'responded';
+          return 'idle';
+        };
+
+        const getMemberResponse = (memberId) => responses.value[memberId];
+        const getMemberError = (memberId) => errors.value[memberId];
+
+        const submitQuestion = async (q) => {
+          question.value = q;
+          isLoading.value = true;
+          rateLimited.value = false;
+          responses.value = {};
+          errors.value = {};
+          verdict.value = '';
+          verdictError.value = '';
+          showVerdict.value = true;
+
+          try {
+            const response = await fetch('/.netlify/functions/council', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ question: q }),
+            });
+
+            if (response.status === 429) {
+              rateLimited.value = true;
+              isLoading.value = false;
+              return;
+            }
+
+            if (!response.ok) {
+              throw new Error(`HTTP ${response.status}`);
+            }
+
+            const data = await response.json();
+
+            // Process responses as they arrive (simulated with rounds)
+            if (data.rounds && data.rounds.length > 0) {
+              for (const round of data.rounds) {
+                for (const item of round) {
+                  if (item.response) {
+                    responses.value[item.memberId] = item.response;
+                  }
+                }
+              }
+            }
+
+            if (data.verdict) {
+              verdict.value = data.verdict;
+            }
+
+            isLoading.value = false;
+          } catch (err) {
+            isLoading.value = false;
+            verdictError.value = 'Failed to get verdict. The council may be overwhelmed.';
+            // Set all active members to error if the whole request failed
+            COUNCIL_MEMBERS.forEach(m => {
+              if (!responses.value[m.id]) {
+                errors.value[m.id] = 'Request failed. Please try again.';
+              }
+            });
+          }
+        };
+
+        const retryMember = async (memberId) => {
+          if (!question.value) return;
+          errors.value[memberId] = '';
+          isLoading.value = true;
+          showVerdict.value = true;
+
+          try {
+            const response = await fetch('/.netlify/functions/council', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ question: question.value, memberIds: [memberId] }),
+            });
+
+            if (!response.ok) {
+              throw new Error(`HTTP ${response.status}`);
+            }
+
+            const data = await response.json();
+
+            if (data.rounds && data.rounds.length > 0) {
+              for (const round of data.rounds) {
+                for (const item of round) {
+                  if (item.memberId === memberId && item.response) {
+                    responses.value[item.memberId] = item.response;
+                  }
+                }
+              }
+            }
+
+            if (!responses.value[memberId]) {
+              errors.value[memberId] = 'No response received';
+            }
+
+            isLoading.value = false;
+          } catch (err) {
+            errors.value[memberId] = 'Retry failed. Please try again.';
+            isLoading.value = false;
+          }
+        };
+
+        const retryJudge = async () => {
+          if (!question.value) return;
+          verdictError.value = '';
+          isLoading.value = true;
+
+          try {
+            const response = await fetch('/.netlify/functions/council', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ question: question.value, judgeOnly: true }),
+            });
+
+            if (!response.ok) {
+              throw new Error(`HTTP ${response.status}`);
+            }
+
+            const data = await response.json();
+
+            if (data.verdict) {
+              verdict.value = data.verdict;
+            } else {
+              verdictError.value = 'No verdict received';
+            }
+
+            isLoading.value = false;
+          } catch (err) {
+            verdictError.value = 'Retry failed. Please try again.';
+            isLoading.value = false;
+          }
+        };
+
+        const reset = () => {
+          question.value = '';
+          isLoading.value = false;
+          responses.value = {};
+          errors.value = {};
+          verdict.value = '';
+          verdictError.value = '';
+          showVerdict.value = false;
+          rateLimited.value = false;
+        };
+
+        return {
+          showHelp,
+          isLoading,
+          rateLimited,
+          question,
+          responses,
+          errors,
+          verdict,
+          verdictError,
+          showVerdict,
+          allMembers,
+          hasResponded,
+          isComplete,
+          getMemberState,
+          getMemberResponse,
+          getMemberError,
+          submitQuestion,
+          retryMember,
+          retryJudge,
+          reset
+        };
+      }
+    });
+
+    app.mount('#app');
+  </script>
+</body>
+</html>
