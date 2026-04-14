@@ -115,8 +115,9 @@ async function callOpenRouter(model: string, systemPrompt: string, userMessage: 
   return content
 }
 
-async function getCouncilResponses(question: string, maxTokensPerMember: number, memberIds?: string[], limited?: boolean): Promise<MemberResponse[]> {
-  const pool = limited ? COUNCIL_MEMBERS : ALL_MEMBERS
+async function getCouncilResponses(question: string, maxTokensPerMember: number, memberIds?: string[], limited?: boolean, disabledMembers: string[] = []): Promise<MemberResponse[]> {
+  const pool = (limited ? COUNCIL_MEMBERS : ALL_MEMBERS)
+    .filter(m => !disabledMembers.includes(m.id))
   const members = memberIds
     ? pool.filter(m => memberIds!.includes(m.id))
     : pool
@@ -194,7 +195,8 @@ export default defineEventHandler(async (event) => {
 
   try {
     const limited = config.public.limitedFeatures as boolean
-    const memberResponses = await getCouncilResponses(question, maxTokensPerMember, body.memberIds, limited)
+    const disabledMembers = config.public.disabledMembers as string[]
+    const memberResponses = await getCouncilResponses(question, maxTokensPerMember, body.memberIds, limited, disabledMembers)
     const verdict = await getJudgeVerdict(question, memberResponses, maxTokensJudge)
 
     return {

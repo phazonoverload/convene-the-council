@@ -12,6 +12,10 @@ export default defineNuxtConfig({
     rateLimitWindowMs: Number(process.env.RATE_LIMIT_WINDOW_MS || 24 * 60 * 60 * 1000),
     public: {
       limitedFeatures: process.env.LIMITED_FEATURES === 'true',
+      disabledMembers: (process.env.DISABLED_MEMBERS || '')
+        .split(',')
+        .map(s => s.trim())
+        .filter(Boolean),
     },
   },
   

@@ -119,10 +119,20 @@
               <td class="py-2 pr-4 font-mono text-xs">5</td>
               <td class="py-2">How many questions any single visitor can ask per window.</td>
             </tr>
-            <tr>
+            <tr class="border-b border-border/50">
               <td class="py-2 pr-4 font-mono text-xs text-charcoal">RATE_LIMIT_WINDOW_MS</td>
               <td class="py-2 pr-4 font-mono text-xs">86400000</td>
               <td class="py-2">Rate limit window in milliseconds. Default is 24 hours.</td>
+            </tr>
+            <tr>
+              <td class="py-2 pr-4 font-mono text-xs text-charcoal">DISABLED_MEMBERS</td>
+              <td class="py-2 pr-4 font-mono text-xs">(none)</td>
+              <td class="py-2">
+                Comma-separated member IDs to remove entirely. Hidden from the UI and never called, even on retry.
+                <div class="mt-2 flex flex-wrap gap-1">
+                  <code v-for="id in memberIds" :key="id" class="bg-parchment/60 px-1.5 py-0.5 rounded text-xs">{{ id }}</code>
+                </div>
+              </td>
             </tr>
           </tbody>
         </table>
@@ -167,8 +177,11 @@
 
 <script setup lang="ts">
 import { ArrowTopRightOnSquareIcon } from '@heroicons/vue/24/outline'
+import council from '~/config/council'
 
 definePageMeta({
   title: 'Deploy',
 })
+
+const memberIds = council.map(m => m.id)
 </script>

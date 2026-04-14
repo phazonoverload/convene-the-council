@@ -52,7 +52,7 @@
     <div v-if="!rateLimited" class="mt-8 slide-down">
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         <CouncilMemberCard
-          v-for="member in COUNCIL_MEMBERS"
+          v-for="member in visibleCouncilMembers"
           :key="member.id"
           :member="member"
           :state="getMemberState(member.id)"
@@ -84,7 +84,7 @@
         </div>
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           <CouncilMemberCard
-            v-for="member in LOCKED_MEMBERS"
+            v-for="member in visibleLockedMembers"
             :key="member.id"
             :member="member"
             :state="limited ? 'locked' : getMemberState(member.id)"
@@ -108,9 +108,19 @@
 <script setup lang="ts">
 import { COUNCIL_MEMBERS, LOCKED_MEMBERS } from '~/config/council'
 
-const { public: { limitedFeatures: limited } } = useRuntimeConfig()
+const { public: { limitedFeatures: limited, disabledMembers } } = useRuntimeConfig()
 
-const activeMembers = computed(() => limited ? COUNCIL_MEMBERS : [...COUNCIL_MEMBERS, ...LOCKED_MEMBERS])
+const visibleCouncilMembers = computed(() =>
+  COUNCIL_MEMBERS.filter(m => !(disabledMembers as string[]).includes(m.id))
+)
+const visibleLockedMembers = computed(() =>
+  LOCKED_MEMBERS.filter(m => !(disabledMembers as string[]).includes(m.id))
+)
+const activeMembers = computed(() =>
+  limited
+    ? visibleCouncilMembers.value
+    : [...visibleCouncilMembers.value, ...visibleLockedMembers.value]
+)
 
 type MemberState = 'idle' | 'thinking' | 'responded' | 'error' | 'locked'
 

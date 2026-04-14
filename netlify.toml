@@ -9,3 +9,9 @@
 # the static output automatically — no redirects are needed here.
 # The preset wires /api/* to the server function and sets up the
 # SPA fallback for all other routes.
+
+# Variables surfaced in the Netlify one-click deploy flow.
+# Set OPENROUTER_API_KEY — all others are optional.
+[template.environment]
+  OPENROUTER_API_KEY = "Your API key from openrouter.ai/keys (required)"
+  DISABLED_MEMBERS = "Comma-separated member IDs to hide, e.g. genius,therapist (optional)"

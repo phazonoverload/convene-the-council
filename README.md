@@ -39,6 +39,7 @@ npm run dev                   # http://localhost:3000
 | `MAX_TOKENS_JUDGE` | `400` | Length cap on the judge's synthesis. |
 | `RATE_LIMIT` | `5` | Requests per window per IP. |
 | `RATE_LIMIT_WINDOW_MS` | `86400000` | Rate-limit window in milliseconds. Default is 24 hours. |
+| `DISABLED_MEMBERS` | *(none)* | Comma-separated member IDs to remove entirely, e.g. `genius,therapist`. Hidden from the UI and never called server-side. |
 
 Set these in Netlify under **Site configuration → Environment variables** (or in your local `.env` for development).
 
