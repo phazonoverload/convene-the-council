@@ -3,6 +3,7 @@
 .output
 .nitro
 .cache
+dist
 
 # Node
 node_modules
