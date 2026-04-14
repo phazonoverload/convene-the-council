@@ -22,16 +22,22 @@ Personal Council is a web app that lets users pose a question to a panel of AI a
 
 ## Visual Design
 
-**Aesthetic**: Dark, editorial — deep charcoal background, warm cream text, muted gold accents. Private counsel chamber, not a chat UI.
+**Aesthetic**: Clean courtroom / council chamber — cream parchment background, deep charcoal text, dark wood or burgundy accents. Feels like a formal proceeding, not a casual chat.
 
 **Colors**:
-- Background: `#1a1a1a`
-- Card surface: `#242424`
-- Text primary: `#f5f0e8` (warm cream)
-- Text secondary: `#8a8a8a`
-- Accent: `#c9a227` (muted gold)
-- Error: `#d64545`
-- Locked/disabled: `#3a3a3a`
+- Background: `#f5f0e3` (warm cream/parchment)
+- Card surface: `#ffffff` with subtle shadow
+- Text primary: `#2a2a2a` (near-black)
+- Text secondary: `#6b6b6b`
+- Accent: `#7a2c2c` (deep burgundy) or `#3d2b1f` (dark walnut)
+- Border/divider: `#d4c9b5`
+- Error: `#b33a3a`
+- Locked/disabled: `#e8e4dc`
+
+**Typography**:
+- Headings: `Playfair Display` or `Merriweather` (serif)
+- Body: `Source Serif Pro` or `Lora` (readable serif)
+- Monospace fallback for model badges: `JetBrains Mono` or `Courier New`
 
 ---
 
