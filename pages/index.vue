@@ -9,7 +9,7 @@
         @keydown.meta.enter="submitQuestion"
         :disabled="isLoading"
         placeholder="Ask the council anything..."
-        class="w-full px-4 pt-4 pb-2 bg-transparent text-charcoal placeholder-muted/60 resize-none focus:outline-none transition-all disabled:opacity-60 disabled:cursor-not-allowed font-serif text-base leading-relaxed"
+        class="w-full px-4 pt-4 pb-2 bg-transparent text-charcoal placeholder-muted/60 resize-none outline-none transition-all disabled:opacity-60 disabled:cursor-not-allowed font-serif text-base leading-relaxed rounded"
         rows="3"
       ></textarea>
       <div class="flex items-center justify-between px-4 py-3 border-t border-border/60 bg-parchment/30">
@@ -17,9 +17,9 @@
         <button
           @click="submitQuestion"
           :disabled="isLoading || !questionDraft.trim()"
-          class="px-5 py-2 bg-burgundy text-white rounded-md font-medium text-sm hover:bg-burgundy/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          class="px-5 py-2 bg-burgundy text-white rounded-md font-medium text-sm hover:bg-burgundy/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-burgundy/50 focus-visible:ring-offset-2"
         >
-          {{ isLoading ? 'Consulting...' : 'Ask the council' }}
+          {{ isLoading ? 'Seeking wisdom...' : 'Ask the council' }}
         </button>
       </div>
     </div>
@@ -50,50 +50,73 @@
 
     <!-- Council Grid -->
     <div v-if="!rateLimited" class="mt-8 slide-down">
-      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        <CouncilMemberCard
-          v-for="member in visibleCouncilMembers"
-          :key="member.id"
-          :member="member"
-          :state="getMemberState(member.id)"
-          :response="responses[member.id]"
-          :error="errors[member.id]"
-          @retry="retryMember(member.id)"
-        />
-
-        <!-- Deploy CTA card (limited mode only) -->
-        <NuxtLink
-          v-if="limited"
-          to="/deploy"
-          class="rounded-lg p-5 border border-dashed border-border bg-surface/50 hover:bg-surface hover:card-shadow transition-all flex flex-col justify-center items-center text-center min-h-[200px]"
-        >
-          <svg class="w-8 h-8 text-burgundy mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M13 10V3L4 14h7v7l9-11h-7z"/>
-          </svg>
-          <h3 class="font-display text-lg font-semibold text-charcoal mb-2">Deploy your own</h3>
-          <p class="text-sm text-muted leading-relaxed">Change the underlying models, remove rate limits, and unlock additional members.</p>
-        </NuxtLink>
-      </div>
-
-      <!-- Additional members (locked in limited mode, active otherwise) -->
-      <div class="mt-12">
-        <div class="flex items-center gap-4 mb-4">
-          <div class="flex-1 h-px bg-border"></div>
-          <span class="font-display text-sm font-medium text-muted uppercase tracking-wider">Additional members</span>
-          <div class="flex-1 h-px bg-border"></div>
-        </div>
+      <!-- Self-hosted: all members in one unified grid -->
+      <template v-if="!limited">
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <CouncilMemberCard
+            v-for="member in visibleCouncilMembers"
+            :key="member.id"
+            :member="member"
+            :state="getMemberState(member.id)"
+            :response="responses[member.id]"
+            :error="errors[member.id]"
+            @retry="retryMember(member.id)"
+          />
           <CouncilMemberCard
             v-for="member in visibleLockedMembers"
             :key="member.id"
             :member="member"
-            :state="limited ? 'locked' : getMemberState(member.id)"
-            :response="limited ? null : responses[member.id]"
-            :error="limited ? null : errors[member.id]"
-            @retry="limited ? undefined : retryMember(member.id)"
+            :state="getMemberState(member.id)"
+            :response="responses[member.id]"
+            :error="errors[member.id]"
+            @retry="retryMember(member.id)"
           />
         </div>
-      </div>
+      </template>
+
+      <!-- Limited: primary members + deploy CTA, then additional members with heading -->
+      <template v-else>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <CouncilMemberCard
+            v-for="member in visibleCouncilMembers"
+            :key="member.id"
+            :member="member"
+            :state="getMemberState(member.id)"
+            :response="responses[member.id]"
+            :error="errors[member.id]"
+            @retry="retryMember(member.id)"
+          />
+
+          <NuxtLink
+            to="/deploy"
+            class="rounded-lg p-5 border border-dashed border-border bg-surface/50 hover:bg-surface hover:card-shadow transition-all flex flex-col justify-center items-center text-center min-h-[200px]"
+          >
+            <svg class="w-8 h-8 text-burgundy mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+            </svg>
+            <h3 class="font-display text-lg font-semibold text-charcoal mb-2">Deploy your own</h3>
+            <p class="text-sm text-muted leading-relaxed">Change the underlying models, remove rate limits, and unlock additional members.</p>
+          </NuxtLink>
+        </div>
+
+        <div class="mt-12">
+          <div class="flex items-center gap-4 mb-4">
+            <div class="flex-1 h-px bg-border"></div>
+            <span class="font-display text-sm font-medium text-muted uppercase tracking-wider">Additional members</span>
+            <div class="flex-1 h-px bg-border"></div>
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <CouncilMemberCard
+              v-for="member in visibleLockedMembers"
+              :key="member.id"
+              :member="member"
+              state="locked"
+              :response="null"
+              :error="null"
+            />
+          </div>
+        </div>
+      </template>
     </div>
 
     <!-- Reset Link -->

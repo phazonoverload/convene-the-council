@@ -7,7 +7,7 @@
 }
 
 .shimmer {
-  background: linear-gradient(90deg, #e8e4dc 25%, #f5f0e3 50%, #e8e4dc 75%);
+  background: linear-gradient(90deg, oklch(0.9 0.01 90) 25%, oklch(0.95 0.01 90) 50%, oklch(0.9 0.01 90) 75%);
   background-size: 200% 100%;
   animation: shimmer 1.5s infinite;
 }
@@ -28,4 +28,19 @@
 
 .slide-down {
   transition: transform 0.6s ease-out, opacity 0.6s ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .shimmer {
+    animation: none;
+    background: oklch(0.9 0.01 90);
+  }
+  
+  .fade-in {
+    animation: none;
+  }
+  
+  .slide-down {
+    transition: none;
+  }
 }

@@ -1,12 +1,13 @@
 <template>
-  <div
-    :class="[
-      'relative rounded-lg pt-5 px-5 pb-3 bg-surface card-shadow border border-border transition-all',
-      state === 'error' ? 'border-error ring-1 ring-error/30' : '',
-      state === 'responded' ? 'fade-in' : '',
-      state === 'locked' ? 'opacity-60' : '',
-    ]"
-  >
+<div
+  :class="[
+    'relative rounded-lg pt-5 px-5 pb-3 bg-surface card-shadow border border-border transition-all duration-200',
+    state === 'error' ? 'border-error ring-1 ring-error/30' : '',
+    state === 'responded' ? 'fade-in' : '',
+    state === 'locked' ? 'opacity-60' : '',
+    state !== 'locked' && state !== 'error' ? 'hover:border-burgundy/40 hover:shadow-md' : '',
+  ]"
+>
     <div class="flex items-start gap-3 mb-3">
       <div
         :class="[
@@ -26,7 +27,7 @@
     </div>
 
     <div v-if="state === 'idle'" class="flex items-center justify-center h-36 border-t border-border/50 pt-4">
-      <p class="text-sm text-muted/60 italic">Awaiting your question...</p>
+      <p class="text-sm text-muted/70 italic">The council awaits your query...</p>
     </div>
 
     <div v-else-if="state === 'locked'" class="flex items-center justify-center h-36 border-t border-border/50 pt-4">
