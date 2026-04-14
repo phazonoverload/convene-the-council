@@ -32,6 +32,7 @@ export default defineNuxtConfig({
         { name: 'description', content: 'Gather AI personas to debate your ideas' }
       ],
       link: [
+        { rel: 'icon', type: 'image/svg+xml', href: '/logo.svg' },
         { rel: 'preconnect', href: 'https://fonts.googleapis.com' },
         { rel: 'preconnect', href: 'https://fonts.gstatic.com', crossorigin: '' },
         { rel: 'stylesheet', href: 'https://fonts.googleapis.com/css2?family=Lora:wght@400;600;700&family=Playfair+Display:wght@400;600;700&display=swap' }
