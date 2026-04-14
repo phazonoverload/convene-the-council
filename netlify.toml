@@ -1,6 +1,24 @@
 [build]
-  publish = "."
-  functions = "netlify/functions"
+  command = "npm run build"
+  publish = ".output/public"
 
-[template.environment]
-  OPENROUTER_API_KEY = "Your OpenRouter API key"
+[build.environment]
+  NODE_VERSION = "20"
+
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
+
+[dev]
+  command = "npm run dev"
+  port = 3000
+  targetPort = 3000
+
+[[redirects]]
+  from = "/api/*"
+  to = "/.netlify/functions/:splat"
+  status = 200
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
