@@ -116,7 +116,7 @@
         "./imports"
       ],
       "#app-manifest": [
-        "./manifest/meta/d64fac6b-d968-4427-8743-5be6bdcf8006.json"
+        "./manifest/meta/dev"
       ],
       "#components": [
         "./components"
@@ -170,6 +170,6 @@
     "../.data",
     "../node_modules/runtime/server",
     "../node_modules/dist/runtime/server",
-    "../.netlify/functions-internal"
+    "dev"
   ]
 }
