@@ -39,7 +39,6 @@ export default defineNuxtConfig({
         { property: 'og:image:width', content: '1200' },
         { property: 'og:image:height', content: '630' },
         { name: 'twitter:card', content: 'summary_large_image' },
-        { name: 'twitter:site', content: '@kevinclark' },
         { name: 'twitter:title', content: 'Convene the Council' },
         { name: 'twitter:description', content: 'Gather AI personas to debate your ideas. A council of distinct perspectives to challenge and refine your thinking.' },
         { name: 'twitter:image', content: 'https://convenethecouncil.com/og.png' },
