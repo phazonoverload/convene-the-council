@@ -27,7 +27,7 @@
       </div>
     </div>
 
-    <div v-if="state === 'idle'" class="flex items-center justify-center h-36 border-t border-border/50 pt-4">
+    <div v-if="state === 'idle'" class="hidden sm:flex items-center justify-center h-36 border-t border-border/50 pt-4">
       <p class="text-sm text-muted/70 italic">The council awaits your query...</p>
     </div>
 
@@ -35,12 +35,32 @@
       <p class="text-sm text-muted/70 italic">Deploy to unlock</p>
     </div>
 
-    <div v-else-if="state === 'thinking'" class="h-36 border-t border-border/50 pt-4">
-      <div class="shimmer h-full rounded-md"></div>
+    <div v-else-if="state === 'thinking'" class="border-t border-border/50 pt-4">
+      <p class="sm:hidden text-sm text-muted/70 italic py-2">This member is thinking…</p>
+      <div class="hidden sm:block h-32 shimmer rounded-md"></div>
     </div>
 
     <div v-else-if="state === 'responded'" class="border-t border-border/50 pt-4">
-      <div class="h-36 overflow-y-auto pr-1">
+      <div class="sm:hidden">
+        <div v-if="!showResponse">
+          <button
+            @click="showResponse = true"
+            class="text-xs px-3 py-1.5 border border-burgundy/40 text-burgundy rounded hover:bg-burgundy/10 transition-colors"
+          >
+            View response
+          </button>
+        </div>
+        <div v-else>
+          <p class="text-sm text-charcoal leading-relaxed whitespace-pre-wrap mb-2">{{ response }}</p>
+          <button
+            @click="showResponse = false"
+            class="text-xs text-muted/70 hover:text-muted transition-colors underline"
+          >
+            Hide
+          </button>
+        </div>
+      </div>
+      <div class="hidden sm:block h-36 overflow-y-auto pr-1">
         <p class="text-sm text-charcoal leading-relaxed whitespace-pre-wrap">{{ response }}</p>
       </div>
     </div>
@@ -118,4 +138,5 @@ const iconMeta = computed(() => ICON_MAP[props.member.id] ?? { component: UserCi
 const prettyModel = computed(() => props.member.label)
 const logoUrl = computed(() => `https://models.dev/logos/${props.member.logo}.svg`)
 const logoFailed = ref(false)
+const showResponse = ref(false)
 </script>
