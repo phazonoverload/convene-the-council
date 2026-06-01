@@ -71,13 +71,12 @@
           tabindex="0"
           class="cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-burgundy/50 rounded-lg"
         >
-          <div class="p-4 flex items-center justify-between">
+          <div class="p-4 flex items-start justify-between">
             <div class="flex-1 min-w-0">
               <span class="font-display text-sm font-semibold text-charcoal">Round {{ index + 1 }}</span>
-              <p class="text-sm text-muted truncate mt-1">{{ round.question }}</p>
+              <p class="text-sm text-muted mt-1 leading-relaxed">{{ round.question }}</p>
             </div>
-            <div class="flex items-center gap-3 ml-4">
-              <span v-if="round.verdict" class="text-xs text-burgundy truncate max-w-[200px] hidden sm:block">{{ truncateText(round.verdict, 80) }}</span>
+            <div class="flex items-center gap-3 ml-4 pt-1">
               <svg
                 :class="['w-5 h-5 text-muted transition-transform', expandedRounds.has(round.id) ? 'rotate-180' : '']"
                 fill="none" stroke="currentColor" viewBox="0 0 24 24"
