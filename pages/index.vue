@@ -1,7 +1,7 @@
 <template>
   <div>
     <!-- Question Input -->
-    <div v-if="!isLoading" class="bg-surface rounded-lg border-2 border-charcoal/10 shadow-lg overflow-hidden">
+    <div class="bg-surface rounded-lg border-2 border-charcoal/10 shadow-lg overflow-hidden">
       <div class="h-1 bg-gradient-to-r from-burgundy/60 via-burgundy to-burgundy/60"></div>
       <textarea
         ref="textareaRef"
@@ -9,7 +9,7 @@
         @keydown.ctrl.enter="submitQuestion"
         @keydown.meta.enter="submitQuestion"
         :disabled="isLoading"
-        placeholder="Ask the council anything..."
+        :placeholder="hasResponded ? 'Follow up with the council\u2026' : 'Ask the council anything\u2026'"
         class="w-full px-5 pt-5 pb-3 bg-transparent text-charcoal placeholder-muted/50 resize-none outline-none transition-all disabled:opacity-60 disabled:cursor-not-allowed font-serif text-lg leading-relaxed"
         rows="4"
       ></textarea>
@@ -66,7 +66,12 @@
           <p class="text-xs uppercase tracking-wider text-muted mb-2">Your question</p>
           <p class="text-charcoal leading-relaxed whitespace-pre-wrap">{{ round.question }}</p>
         </div>
-        <div class="grid council-grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+        <JudgeVerdict
+          v-if="round.verdict || round.verdictError"
+          :verdict="round.verdict"
+          :error="round.verdictError"
+        />
+        <div class="mt-4 grid council-grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
           <CouncilMemberCard
             v-for="member in activeMembers"
             :key="member.id"
@@ -76,11 +81,6 @@
             :error="round.memberErrors[member.id]"
           />
         </div>
-        <JudgeVerdict
-          v-if="round.verdict || round.verdictError"
-          :verdict="round.verdict"
-          :error="round.verdictError"
-        />
       </div>
     </div>
 
@@ -97,7 +97,15 @@
         <p class="text-charcoal leading-relaxed whitespace-pre-wrap">{{ activeRound.question }}</p>
       </div>
 
-      <div class="grid council-grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+      <JudgeVerdict
+        v-if="showVerdict"
+        :verdict="activeRound.verdict"
+        :is-loading="isLoading && !activeRound.verdict && !activeRound.verdictError"
+        :error="activeRound.verdictError"
+        @retry="retryJudge"
+      />
+
+      <div class="mt-4 grid council-grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
         <CouncilMemberCard
           v-for="member in activeMembers"
           :key="member.id"
@@ -119,22 +127,27 @@
           <p class="text-sm text-muted leading-relaxed">Change the underlying models, remove rate limits, and unlock additional members.</p>
         </NuxtLink>
       </div>
-
-      <JudgeVerdict
-        v-if="showVerdict"
-        :verdict="activeRound.verdict"
-        :is-loading="isLoading && !activeRound.verdict && !activeRound.verdictError"
-        :error="activeRound.verdictError"
-        @retry="retryJudge"
-      />
     </div>
 
-    <!-- Ask Another Question -->
-    <div v-if="hasResponded && !isLoading" class="mt-8 text-center">
-      <button @click="reset" class="text-burgundy hover:text-burgundy/80 underline underline-offset-4 text-sm">
-        Ask another question
-      </button>
+    <!-- Locked Members (limited mode) -->
+    <div v-if="limited && visibleLockedMembers.length > 0" class="mt-12">
+      <div class="flex items-center gap-4 mb-4">
+        <div class="flex-1 h-px bg-border"></div>
+        <span class="font-display text-sm font-medium text-muted uppercase tracking-wider">Additional members</span>
+        <div class="flex-1 h-px bg-border"></div>
+      </div>
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <CouncilMemberCard
+          v-for="member in visibleLockedMembers"
+          :key="member.id"
+          :member="member"
+          state="locked"
+          :response="null"
+          :error="null"
+        />
+      </div>
     </div>
+
   </div>
 </template>
 
@@ -386,5 +399,11 @@ const reset = () => {
 
 onMounted(() => {
   textareaRef.value?.focus()
+})
+
+watch(showVerdict, (shown) => {
+  if (shown && !isLoading.value) {
+    nextTick(() => textareaRef.value?.focus())
+  }
 })
 </script>
