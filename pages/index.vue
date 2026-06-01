@@ -34,6 +34,48 @@
       </NuxtLink>
     </div>
 
+    <!-- Initial idle state (no rounds yet) -->
+    <div v-if="!hasResponded && !rateLimited" class="mt-8">
+      <div class="grid council-grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+        <CouncilMemberCard
+          v-for="member in activeMembers"
+          :key="member.id"
+          :member="member"
+          state="idle"
+          :response="null"
+          :error="null"
+        />
+        <NuxtLink
+          v-if="limited"
+          to="/deploy"
+          class="rounded-xl p-6 border-2 border-dashed border-charcoal/20 bg-surface/80 hover:bg-surface hover:border-burgundy/50 hover:shadow-xl scale-in transition-all flex flex-col justify-center items-center text-center min-h-[200px]"
+        >
+          <svg class="w-10 h-10 text-burgundy mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+          </svg>
+          <h3 class="font-display text-lg font-semibold text-charcoal mb-2">Deploy your own</h3>
+          <p class="text-sm text-muted leading-relaxed">Change the underlying models, remove rate limits, and unlock additional members.</p>
+        </NuxtLink>
+      </div>
+      <div v-if="limited && visibleLockedMembers.length > 0" class="mt-12">
+        <div class="flex items-center gap-4 mb-4">
+          <div class="flex-1 h-px bg-border"></div>
+          <span class="font-display text-sm font-medium text-muted uppercase tracking-wider">Additional members</span>
+          <div class="flex-1 h-px bg-border"></div>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <CouncilMemberCard
+            v-for="member in visibleLockedMembers"
+            :key="member.id"
+            :member="member"
+            state="locked"
+            :response="null"
+            :error="null"
+          />
+        </div>
+      </div>
+    </div>
+
     <!-- Previous Rounds (collapsible) -->
     <div v-for="(round, index) in previousRounds" :key="round.id" class="mt-6">
       <div
