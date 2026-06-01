@@ -1,7 +1,7 @@
 <template>
   <div>
     <!-- Question Input -->
-    <div v-if="!hasResponded" class="bg-surface rounded-lg border-2 border-charcoal/10 shadow-lg overflow-hidden">
+    <div v-if="!isLoading" class="bg-surface rounded-lg border-2 border-charcoal/10 shadow-lg overflow-hidden">
       <div class="h-1 bg-gradient-to-r from-burgundy/60 via-burgundy to-burgundy/60"></div>
       <textarea
         ref="textareaRef"
@@ -20,27 +20,12 @@
           :disabled="isLoading || !questionDraft.trim()"
           class="px-5 py-2 bg-burgundy text-white rounded-md font-medium text-sm hover:bg-burgundy/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-burgundy/50 focus-visible:ring-offset-2"
         >
-          {{ isLoading ? 'Seeking wisdom...' : 'Ask the council' }}
+          Ask the council
         </button>
       </div>
     </div>
 
-    <!-- Active question display -->
-    <div v-else class="mb-6 p-5 bg-surface rounded-lg border border-border card-shadow">
-      <p class="text-xs uppercase tracking-wider text-muted mb-2">Your question</p>
-      <p class="text-charcoal leading-relaxed whitespace-pre-wrap">{{ activeRound?.question }}</p>
-    </div>
-
-    <!-- Judge Verdict (shown as soon as members are done, regardless of member count) -->
-    <JudgeVerdict
-      v-if="showVerdict"
-      :verdict="activeRound?.verdict ?? ''"
-      :is-loading="isLoading && !activeRound?.verdict && !activeRound?.verdictError"
-      :error="activeRound?.verdictError ?? ''"
-      @retry="retryJudge"
-    />
-
-    <!-- Rate Limit Message -->
+    <!-- Rate Limit -->
     <div v-if="rateLimited" class="mt-6 p-6 bg-surface border border-error rounded-lg text-center card-shadow">
       <p class="text-error font-medium mb-3">Rate limit reached. The council needs a moment to rest.</p>
       <p class="text-muted text-sm mb-4">Deploy your own instance to get higher limits and unlock additional council members.</p>
@@ -49,78 +34,102 @@
       </NuxtLink>
     </div>
 
-    <!-- Council Grid -->
-    <div v-if="!rateLimited" class="mt-8 slide-down">
-      <!-- Self-hosted: all members in one unified grid -->
-      <template v-if="!limited">
-        <div class="grid council-grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-          <CouncilMemberCard
-            v-for="member in visibleCouncilMembers"
-            :key="member.id"
-            :member="member"
-            :state="getMemberState(member.id, activeRound)"
-            :response="activeRound?.memberResponses[member.id]"
-            :error="activeRound?.memberErrors[member.id]"
-            @retry="retryMember(member.id)"
-          />
-          <CouncilMemberCard
-            v-for="member in visibleLockedMembers"
-            :key="member.id"
-            :member="member"
-            :state="getMemberState(member.id, activeRound)"
-            :response="activeRound?.memberResponses[member.id]"
-            :error="activeRound?.memberErrors[member.id]"
-            @retry="retryMember(member.id)"
-          />
-        </div>
-      </template>
-
-      <!-- Limited: primary members + deploy CTA, then additional members with heading -->
-      <template v-else>
-        <div class="grid council-grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-          <CouncilMemberCard
-            v-for="member in visibleCouncilMembers"
-            :key="member.id"
-            :member="member"
-            :state="getMemberState(member.id, activeRound)"
-            :response="activeRound?.memberResponses[member.id]"
-            :error="activeRound?.memberErrors[member.id]"
-            @retry="retryMember(member.id)"
-          />
-
-          <NuxtLink
-            to="/deploy"
-            class="rounded-xl p-6 border-2 border-dashed border-charcoal/20 bg-surface/80 hover:bg-surface hover:border-burgundy/50 hover:shadow-xl scale-in transition-all flex flex-col justify-center items-center text-center min-h-[200px]"
-          >
-            <svg class="w-10 h-10 text-burgundy mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+    <!-- Previous Rounds (collapsible) -->
+    <div v-for="(round, index) in previousRounds" :key="round.id" class="mt-6">
+      <div
+        @click="toggleRound(round.id)"
+        @keydown.enter="toggleRound(round.id)"
+        @keydown.space.prevent="toggleRound(round.id)"
+        role="button"
+        :aria-expanded="expandedRounds.has(round.id)"
+        tabindex="0"
+        class="bg-surface rounded-lg border border-border card-shadow cursor-pointer hover:border-burgundy/40 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-burgundy/50"
+      >
+        <div class="p-4 flex items-center justify-between">
+          <div class="flex-1 min-w-0">
+            <span class="font-display text-sm font-semibold text-charcoal">Round {{ index + 1 }}</span>
+            <p class="text-sm text-muted truncate mt-1">{{ round.question }}</p>
+          </div>
+          <div class="flex items-center gap-3 ml-4">
+            <span v-if="round.verdict" class="text-xs text-burgundy truncate max-w-[200px] hidden sm:block">{{ truncateText(round.verdict, 80) }}</span>
+            <svg
+              :class="['w-5 h-5 text-muted transition-transform', expandedRounds.has(round.id) ? 'rotate-180' : '']"
+              fill="none" stroke="currentColor" viewBox="0 0 24 24"
+            >
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
             </svg>
-            <h3 class="font-display text-lg font-semibold text-charcoal mb-2">Deploy your own</h3>
-            <p class="text-sm text-muted leading-relaxed">Change the underlying models, remove rate limits, and unlock additional members.</p>
-          </NuxtLink>
-        </div>
-
-        <div class="mt-12">
-          <div class="flex items-center gap-4 mb-4">
-            <div class="flex-1 h-px bg-border"></div>
-            <span class="font-display text-sm font-medium text-muted uppercase tracking-wider">Additional members</span>
-            <div class="flex-1 h-px bg-border"></div>
-          </div>
-          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            <CouncilMemberCard
-              v-for="member in visibleLockedMembers"
-              :key="member.id"
-              :member="member"
-              state="locked"
-              :response="null"
-              :error="null"
-            />
           </div>
         </div>
-      </template>
+      </div>
+      <div v-if="expandedRounds.has(round.id)" class="mt-4">
+        <div class="mb-4 p-4 bg-surface rounded-lg border border-border card-shadow">
+          <p class="text-xs uppercase tracking-wider text-muted mb-2">Your question</p>
+          <p class="text-charcoal leading-relaxed whitespace-pre-wrap">{{ round.question }}</p>
+        </div>
+        <div class="grid council-grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+          <CouncilMemberCard
+            v-for="member in activeMembers"
+            :key="member.id"
+            :member="member"
+            :state="getMemberState(member.id, round)"
+            :response="round.memberResponses[member.id]"
+            :error="round.memberErrors[member.id]"
+          />
+        </div>
+        <JudgeVerdict
+          v-if="round.verdict || round.verdictError"
+          :verdict="round.verdict"
+          :error="round.verdictError"
+        />
+      </div>
     </div>
 
-    <!-- Reset Link -->
+    <!-- Active Round -->
+    <div v-if="activeRound" class="mt-6">
+      <div v-if="previousRounds.length > 0" class="flex items-center gap-4 mb-4">
+        <div class="flex-1 h-px bg-border"></div>
+        <span class="font-display text-sm font-medium text-muted uppercase tracking-wider">Current Round</span>
+        <div class="flex-1 h-px bg-border"></div>
+      </div>
+
+      <div class="mb-4 p-4 bg-surface rounded-lg border border-border card-shadow">
+        <p class="text-xs uppercase tracking-wider text-muted mb-2">Your question</p>
+        <p class="text-charcoal leading-relaxed whitespace-pre-wrap">{{ activeRound.question }}</p>
+      </div>
+
+      <div class="grid council-grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+        <CouncilMemberCard
+          v-for="member in activeMembers"
+          :key="member.id"
+          :member="member"
+          :state="getMemberState(member.id, activeRound)"
+          :response="activeRound.memberResponses[member.id]"
+          :error="activeRound.memberErrors[member.id]"
+          @retry="retryMember(member.id)"
+        />
+        <NuxtLink
+          v-if="limited"
+          to="/deploy"
+          class="rounded-xl p-6 border-2 border-dashed border-charcoal/20 bg-surface/80 hover:bg-surface hover:border-burgundy/50 hover:shadow-xl scale-in transition-all flex flex-col justify-center items-center text-center min-h-[200px]"
+        >
+          <svg class="w-10 h-10 text-burgundy mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+          </svg>
+          <h3 class="font-display text-lg font-semibold text-charcoal mb-2">Deploy your own</h3>
+          <p class="text-sm text-muted leading-relaxed">Change the underlying models, remove rate limits, and unlock additional members.</p>
+        </NuxtLink>
+      </div>
+
+      <JudgeVerdict
+        v-if="showVerdict"
+        :verdict="activeRound.verdict"
+        :is-loading="isLoading && !activeRound.verdict && !activeRound.verdictError"
+        :error="activeRound.verdictError"
+        @retry="retryJudge"
+      />
+    </div>
+
+    <!-- Ask Another Question -->
     <div v-if="hasResponded && !isLoading" class="mt-8 text-center">
       <button @click="reset" class="text-burgundy hover:text-burgundy/80 underline underline-offset-4 text-sm">
         Ask another question
@@ -175,6 +184,7 @@ interface CouncilRound {
   verdictError: string
 }
 
+const expandedRounds = ref<Set<number>>(new Set())
 const rounds = ref<CouncilRound[]>([])
 const activeRoundId = ref<number | null>(null)
 const isLoading = ref(false)
@@ -245,6 +255,21 @@ const applyResponseToRound = (roundId: number, data: CouncilApiResponse) => {
     round.verdict = data.verdict
     round.verdictError = ''
   }
+}
+
+const toggleRound = (roundId: number) => {
+  const newSet = new Set(expandedRounds.value)
+  if (newSet.has(roundId)) {
+    newSet.delete(roundId)
+  } else {
+    newSet.add(roundId)
+  }
+  expandedRounds.value = newSet
+}
+
+const truncateText = (text: string, maxLen: number): string => {
+  if (text.length <= maxLen) return text
+  return text.slice(0, maxLen) + '...'
 }
 
 const submitQuestion = async () => {
