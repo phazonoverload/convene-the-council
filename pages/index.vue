@@ -60,7 +60,7 @@
     </div>
 
     <!-- Previous Rounds (collapsible) -->
-    <div v-for="(round, index) in previousRounds" :key="round.id" class="mt-6">
+    <div v-for="(round, index) in previousRounds" :key="round.id" class="mt-6 bg-surface rounded-lg border border-border card-shadow">
       <div
         @click="toggleRound(round.id)"
         @keydown.enter="toggleRound(round.id)"
@@ -68,7 +68,10 @@
         role="button"
         :aria-expanded="expandedRounds.has(round.id)"
         tabindex="0"
-        class="bg-surface rounded-lg border border-border card-shadow cursor-pointer hover:border-burgundy/40 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-burgundy/50"
+        :class="[
+          'cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-burgundy/50',
+          expandedRounds.has(round.id) ? 'border-b border-border/60' : '',
+        ]"
       >
         <div class="p-4 flex items-center justify-between">
           <div class="flex-1 min-w-0">
@@ -86,8 +89,8 @@
           </div>
         </div>
       </div>
-      <div v-if="expandedRounds.has(round.id)" class="mt-4">
-        <div class="mb-4 p-4 bg-surface rounded-lg border border-border card-shadow">
+      <div v-if="expandedRounds.has(round.id)" class="px-4 pb-4">
+        <div class="mb-4">
           <p class="text-xs uppercase tracking-wider text-muted mb-2">Your question</p>
           <p class="text-charcoal leading-relaxed whitespace-pre-wrap">{{ round.question }}</p>
         </div>
