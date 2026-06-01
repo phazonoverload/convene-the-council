@@ -89,26 +89,14 @@
           </div>
         </div>
       </div>
-      <div v-if="expandedRounds.has(round.id)" class="px-4 pb-4">
-        <div class="mb-4">
-          <p class="text-xs uppercase tracking-wider text-muted mb-2">Your question</p>
-          <p class="text-charcoal leading-relaxed whitespace-pre-wrap">{{ round.question }}</p>
-        </div>
+      <div v-if="expandedRounds.has(round.id)" class="px-4 pt-4 pb-4">
+        <p class="text-xs uppercase tracking-wider text-muted mb-2">Your question</p>
+        <p class="text-charcoal leading-relaxed whitespace-pre-wrap mb-6">{{ round.question }}</p>
         <JudgeVerdict
           v-if="round.verdict || round.verdictError"
           :verdict="round.verdict"
           :error="round.verdictError"
         />
-        <div class="mt-4 grid council-grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-          <CouncilMemberCard
-            v-for="member in activeMembers"
-            :key="member.id"
-            :member="member"
-            :state="getMemberState(member.id, round)"
-            :response="round.memberResponses[member.id]"
-            :error="round.memberErrors[member.id]"
-          />
-        </div>
       </div>
     </div>
 
@@ -120,7 +108,7 @@
         <div class="flex-1 h-px bg-border"></div>
       </div>
 
-      <div class="mb-4 p-4 bg-surface rounded-lg border border-border card-shadow">
+      <div class="mb-4 p-5 bg-surface rounded-lg border border-border card-shadow">
         <p class="text-xs uppercase tracking-wider text-muted mb-2">Your question</p>
         <p class="text-charcoal leading-relaxed whitespace-pre-wrap">{{ activeRound.question }}</p>
       </div>
