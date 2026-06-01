@@ -57,23 +57,6 @@
           <p class="text-sm text-muted leading-relaxed">Change the underlying models, remove rate limits, and unlock additional members.</p>
         </NuxtLink>
       </div>
-      <div v-if="limited && visibleLockedMembers.length > 0" class="mt-12">
-        <div class="flex items-center gap-4 mb-4">
-          <div class="flex-1 h-px bg-border"></div>
-          <span class="font-display text-sm font-medium text-muted uppercase tracking-wider">Additional members</span>
-          <div class="flex-1 h-px bg-border"></div>
-        </div>
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          <CouncilMemberCard
-            v-for="member in visibleLockedMembers"
-            :key="member.id"
-            :member="member"
-            state="locked"
-            :response="null"
-            :error="null"
-          />
-        </div>
-      </div>
     </div>
 
     <!-- Previous Rounds (collapsible) -->
