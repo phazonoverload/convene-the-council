@@ -2,10 +2,17 @@ import { COUNCIL_MEMBERS, LOCKED_MEMBERS, JUDGE_CONFIG } from '~/config/council'
 
 const ALL_MEMBERS = [...COUNCIL_MEMBERS, ...LOCKED_MEMBERS]
 
+interface ConversationRound {
+  question: string
+  memberResponses: MemberResponse[]
+  verdict: string
+}
+
 interface CouncilRequest {
   question: string
   memberIds?: string[]
   judgeOnly?: boolean
+  history?: ConversationRound[]
 }
 
 interface MemberResponse {
@@ -115,15 +122,38 @@ async function callOpenRouter(model: string, systemPrompt: string, userMessage: 
   return content
 }
 
-async function getCouncilResponses(question: string, maxTokensPerMember: number, memberIds?: string[], limited?: boolean, disabledMembers: string[] = []): Promise<MemberResponse[]> {
+const MAX_HISTORY_ROUNDS = 10
+
+function capHistory(history: ConversationRound[]): ConversationRound[] {
+  if (history.length <= MAX_HISTORY_ROUNDS) return history
+  return history.slice(history.length - MAX_HISTORY_ROUNDS)
+}
+
+async function getCouncilResponses(
+  question: string,
+  maxTokensPerMember: number,
+  history: ConversationRound[],
+  memberIds?: string[],
+  limited?: boolean,
+  disabledMembers: string[] = [],
+): Promise<MemberResponse[]> {
   const pool = (limited ? COUNCIL_MEMBERS : ALL_MEMBERS)
     .filter(m => !disabledMembers.includes(m.id))
   const members = memberIds
     ? pool.filter(m => memberIds!.includes(m.id))
     : pool
 
+  const previousVerdicts = history.length > 0
+    ? 'Previous discussion:\n\nJudge\'s verdicts:\n' +
+      history.map((r, i) => `Round ${i + 1}: ${r.verdict}`).join('\n\n')
+    : ''
+
+  const userMessage = previousVerdicts
+    ? `${previousVerdicts}\n\nNew question: ${question}`
+    : question
+
   const promises = members.map(member =>
-    callOpenRouter(member.model, member.systemPrompt, question, maxTokensPerMember)
+    callOpenRouter(member.model, member.systemPrompt, userMessage, maxTokensPerMember)
       .then(response => ({
         memberId: member.id,
         name: member.name,
@@ -141,14 +171,21 @@ async function getCouncilResponses(question: string, maxTokensPerMember: number,
   return Promise.all(promises)
 }
 
-async function getJudgeVerdict(question: string, memberResponses: MemberResponse[], maxTokensJudge: number): Promise<string> {
-  const responsesText = memberResponses
-    .map(m => `${m.name}: ${m.response || `Error: ${m.error}`}`)
-    .join('\n\n')
+async function getJudgeVerdict(
+  question: string,
+  currentResponses: MemberResponse[],
+  history: ConversationRound[],
+  maxTokensJudge: number,
+): Promise<string> {
+  const historyVerdictsText = history.length > 0
+    ? history.map((r, i) => `Round ${i + 1}:\n${r.memberResponses.map(m => `${m.name}: ${m.response || `Error: ${m.error}`}`).join('\n')}\nVerdict: ${r.verdict}`).join('\n\n')
+    : ''
 
-  const judgePrompt = `Question: ${question}\n\nCouncil Responses:\n${responsesText}`
+  const judgeBody = historyVerdictsText
+    ? `Full conversation:\n\n${historyVerdictsText}\n\nCurrent question: ${question}\n\nCurrent responses:\n${currentResponses.map(m => `${m.name}: ${m.response || `Error: ${m.error}`}`).join('\n\n')}`
+    : `Question: ${question}\n\nCouncil Responses:\n${currentResponses.map(m => `${m.name}: ${m.response || `Error: ${m.error}`}`).join('\n\n')}`
 
-  return callOpenRouter(JUDGE_CONFIG.model, JUDGE_CONFIG.systemPrompt, judgePrompt, maxTokensJudge)
+  return callOpenRouter(JUDGE_CONFIG.model, JUDGE_CONFIG.systemPrompt, judgeBody, maxTokensJudge)
 }
 
 export default defineEventHandler(async (event) => {
@@ -178,6 +215,7 @@ export default defineEventHandler(async (event) => {
   }
 
   const question = body.question.trim()
+  const history = body.history ? capHistory(body.history) : []
 
   if (body.judgeOnly) {
     try {
@@ -185,7 +223,7 @@ export default defineEventHandler(async (event) => {
       if (!previousResponses?.length) {
         throw createError({ statusCode: 400, message: 'previousResponses required for judgeOnly' })
       }
-      const verdict = await getJudgeVerdict(question, previousResponses, maxTokensJudge)
+      const verdict = await getJudgeVerdict(question, previousResponses, history, maxTokensJudge)
       return { verdict, remaining: rateLimitResult.remaining }
     } catch (err: any) {
       if (err.statusCode) throw err
@@ -196,8 +234,8 @@ export default defineEventHandler(async (event) => {
   try {
     const limited = config.public.limitedFeatures as boolean
     const disabledMembers = config.public.disabledMembers as string[]
-    const memberResponses = await getCouncilResponses(question, maxTokensPerMember, body.memberIds, limited, disabledMembers)
-    const verdict = await getJudgeVerdict(question, memberResponses, maxTokensJudge)
+    const memberResponses = await getCouncilResponses(question, maxTokensPerMember, history, body.memberIds, limited, disabledMembers)
+    const verdict = await getJudgeVerdict(question, memberResponses, history, maxTokensJudge)
 
     return {
       question,
