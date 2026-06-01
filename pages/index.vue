@@ -60,43 +60,36 @@
     </div>
 
     <!-- Previous Rounds (collapsible) -->
-    <div v-for="(round, index) in previousRounds" :key="round.id" class="mt-6 bg-surface rounded-lg border border-border card-shadow">
-      <div
-        @click="toggleRound(round.id)"
-        @keydown.enter="toggleRound(round.id)"
-        @keydown.space.prevent="toggleRound(round.id)"
-        role="button"
-        :aria-expanded="expandedRounds.has(round.id)"
-        tabindex="0"
-        :class="[
-          'cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-burgundy/50',
-          expandedRounds.has(round.id) ? 'border-b border-border/60' : '',
-        ]"
-      >
-        <div class="p-4 flex items-center justify-between">
-          <div class="flex-1 min-w-0">
-            <span class="font-display text-sm font-semibold text-charcoal">Round {{ index + 1 }}</span>
-            <p class="text-sm text-muted truncate mt-1">{{ round.question }}</p>
-          </div>
-          <div class="flex items-center gap-3 ml-4">
-            <span v-if="round.verdict" class="text-xs text-burgundy truncate max-w-[200px] hidden sm:block">{{ truncateText(round.verdict, 80) }}</span>
-            <svg
-              :class="['w-5 h-5 text-muted transition-transform', expandedRounds.has(round.id) ? 'rotate-180' : '']"
-              fill="none" stroke="currentColor" viewBox="0 0 24 24"
-            >
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
-            </svg>
+    <div v-for="(round, index) in previousRounds" :key="round.id" class="mt-6">
+      <div class="bg-surface rounded-lg border border-border card-shadow">
+        <div
+          @click="toggleRound(round.id)"
+          @keydown.enter="toggleRound(round.id)"
+          @keydown.space.prevent="toggleRound(round.id)"
+          role="button"
+          :aria-expanded="expandedRounds.has(round.id)"
+          tabindex="0"
+          class="cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-burgundy/50 rounded-lg"
+        >
+          <div class="p-4 flex items-center justify-between">
+            <div class="flex-1 min-w-0">
+              <span class="font-display text-sm font-semibold text-charcoal">Round {{ index + 1 }}</span>
+              <p class="text-sm text-muted truncate mt-1">{{ round.question }}</p>
+            </div>
+            <div class="flex items-center gap-3 ml-4">
+              <span v-if="round.verdict" class="text-xs text-burgundy truncate max-w-[200px] hidden sm:block">{{ truncateText(round.verdict, 80) }}</span>
+              <svg
+                :class="['w-5 h-5 text-muted transition-transform', expandedRounds.has(round.id) ? 'rotate-180' : '']"
+                fill="none" stroke="currentColor" viewBox="0 0 24 24"
+              >
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+              </svg>
+            </div>
           </div>
         </div>
       </div>
-      <div v-if="expandedRounds.has(round.id)" class="px-4 pt-4 pb-4">
-        <p class="text-xs uppercase tracking-wider text-muted mb-2">Your question</p>
-        <p class="text-charcoal leading-relaxed whitespace-pre-wrap mb-6">{{ round.question }}</p>
-        <JudgeVerdict
-          v-if="round.verdict || round.verdictError"
-          :verdict="round.verdict"
-          :error="round.verdictError"
-        />
+      <div v-if="expandedRounds.has(round.id) && round.verdict" class="mt-4 p-5 bg-surface rounded-lg border border-border card-shadow">
+        <p class="text-charcoal leading-relaxed whitespace-pre-wrap">{{ round.verdict }}</p>
       </div>
     </div>
 
