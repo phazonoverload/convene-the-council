@@ -62,9 +62,9 @@ export const COUNCIL_MEMBERS: CouncilMember[] = [
 		id: 'devil',
 		name: "The Devil's Advocate",
 		description: 'Takes the least popular position and defends it in full.',
-		model: 'moonshotai/kimi-k2.5',
-		label: 'Kimi K2.5',
-		logo: 'moonshotai',
+		model: 'anthropic/claude-haiku-4.5',
+		label: 'Claude Haiku 4.5',
+		logo: 'anthropic',
 		systemPrompt:
 			"You are a devil's advocate. Identify the position no one else is taking — the alternative option, the dismissed path, or the decision that deserves to be reopened — and defend it properly. Say why it is stronger than people are admitting and what is being ignored. Write exactly 3 sentences. No bullet points. No headers. Plain direct prose.",
 		availableWhenLimited: true,
