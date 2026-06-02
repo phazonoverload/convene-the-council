@@ -6,7 +6,7 @@ export default defineNuxtConfig({
   
   runtimeConfig: {
     openRouterApiKey: process.env.OPENROUTER_API_KEY || '',
-    maxTokensPerMember: Number(process.env.MAX_TOKENS_PER_MEMBER || 200),
+    maxTokensPerMember: Number(process.env.MAX_TOKENS_PER_MEMBER || 400),
     maxTokensJudge: Number(process.env.MAX_TOKENS_JUDGE || 400),
     rateLimit: Number(process.env.RATE_LIMIT || 5),
     rateLimitWindowMs: Number(process.env.RATE_LIMIT_WINDOW_MS || 24 * 60 * 60 * 1000),

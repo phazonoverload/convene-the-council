@@ -14,5 +14,8 @@ node_modules
 # OS
 .DS_Store
 
+# Env
+.env
+
 # Docs (maintained externally)
 /docs.worktrees/

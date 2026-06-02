@@ -152,7 +152,7 @@
       <dl class="space-y-4 text-sm">
         <div>
           <dt class="font-semibold text-charcoal mb-1">How much will this cost?</dt>
-          <dd class="text-muted leading-relaxed">Netlify is free for personal projects. OpenRouter charges per token; the current model lineup costs roughly $0.001–$0.005 per question.</dd>
+          <dd class="text-muted leading-relaxed">Netlify is free for personal projects. OpenRouter charges per token; the current model lineup costs roughly $0.002–$0.01 per question.</dd>
         </div>
         <div>
           <dt class="font-semibold text-charcoal mb-1">Do I need to know how to code?</dt>
