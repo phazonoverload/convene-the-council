@@ -19,3 +19,6 @@ node_modules
 
 # Docs (maintained externally)
 /docs.worktrees/
+
+# Git worktrees
+.worktrees/
