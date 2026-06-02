@@ -56,7 +56,11 @@ async function callOpenRouter(model: string, systemPrompt: string, userMessage: 
     throw new Error('OPENROUTER_API_KEY is not configured')
   }
 
+  const controller = new AbortController()
+  const timeout = setTimeout(() => controller.abort(), 15000)
+
   const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+    signal: controller.signal,
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -75,6 +79,7 @@ async function callOpenRouter(model: string, systemPrompt: string, userMessage: 
       reasoning: { exclude: true },
     }),
   })
+  clearTimeout(timeout)
 
   if (!response.ok) {
     const errorText = await response.text()
